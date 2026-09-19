@@ -3,7 +3,7 @@ name: 我在校园打卡
 on:
   workflow_dispatch:
   schedule:
-    # - cron:  '00 14 * * *' # 默认在每天 UTC 14:00 （北京时间 22:00）执行
+    - cron:  '0 12 * * *' # 每天 UTC 12:00（北京时间 20:00）执行，代码内部判断是否为周日/假期最后一天
 
 jobs:
   User01:

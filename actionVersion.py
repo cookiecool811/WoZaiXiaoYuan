@@ -3,10 +3,46 @@ import json
 import yagmail
 import re
 import os
+from datetime import datetime, timedelta
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from base64 import b64encode
 import urllib.parse
+
+try:
+    import chinese_calendar
+    HAS_CHINESE_CALENDAR = True
+except ImportError:
+    HAS_CHINESE_CALENDAR = False
+
+
+# 判断今天是否需要签到
+# 签到条件：每周日晚上 或 法定节假日最后一天晚上
+def is_sign_day():
+    today = datetime.now().date()
+
+    # 条件1：每周日（weekday() 返回 0=周一, 6=周日）
+    if today.weekday() == 6:
+        print(f"今天是周日（{today}），符合签到条件。")
+        return True
+
+    # 条件2：法定节假日最后一天
+    if HAS_CHINESE_CALENDAR:
+        try:
+            is_today_holiday, holiday_name = chinese_calendar.get_holiday_detail(today)
+            tomorrow = today + timedelta(days=1)
+            is_tomorrow_holiday = chinese_calendar.is_holiday(tomorrow)
+
+            if is_today_holiday and holiday_name is not None and not is_tomorrow_holiday:
+                print(f"今天是{holiday_name}假期最后一天（{today}），符合签到条件。")
+                return True
+        except NotImplementedError:
+            print(f"警告：chinese_calendar 暂无 {today} 的节假日数据，仅按周日规则判断。")
+    else:
+        print("警告：未安装 chinese-calendar 库，无法判断法定节假日。仅周日执行签到。")
+
+    print(f"今天（{today}，周{today.weekday()+1}）不是签到日，跳过。")
+    return False
 
 
 def MsgSend(message_title, message_info):
@@ -188,6 +224,10 @@ def doBluePunch(headers, username):
 
 
 def main():
+    # 日期判断：仅在周日或法定节假日最后一天才执行签到
+    if not is_sign_day():
+        return
+
     global school_id
     username = os.environ['wzxy_username']
     school_id = get_school_id(os.environ['school_name'])
